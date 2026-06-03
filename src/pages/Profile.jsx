@@ -112,9 +112,11 @@ function Profile() {
   return (
     <div className="profile-page">
       {/* Back Button */}
-      <button className="profile-back-btn" onClick={() => navigate(-1)} style={{ position: 'absolute', top: '1.5rem', left: '1.5rem' }}>
-        <ChevronLeft size={24} />
-      </button>
+      <div style={{ position: 'sticky', top: 0, zIndex: 100, height: 0, pointerEvents: 'none' }}>
+        <button className="profile-back-btn" onClick={() => navigate(-1)} style={{ pointerEvents: 'auto' }}>
+          <ChevronLeft size={24} />
+        </button>
+      </div>
 
       {/* Title */}
       <div className="profile-info" style={{ marginTop: '4rem' }}>
