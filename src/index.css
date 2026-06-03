@@ -105,6 +105,11 @@ select {
   padding-right: 2.5rem;
 }
 
+input[type="date"] {
+  max-width: 100%;
+  min-width: 0;
+}
+
 input[type="date"]::-webkit-calendar-picker-indicator {
   opacity: 0.5;
   cursor: pointer;
