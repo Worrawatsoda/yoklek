@@ -49,7 +49,15 @@ function Profile() {
       .catch(() => { setLoading(false); setError('Failed to load profile'); });
   }, [navigate]);
 
+  const today = new Date().toISOString().slice(0, 10);
+
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+
+  // ไม่ให้ติดลบ — ตัดเครื่องหมายลบทิ้ง
+  const setPositive = (field) => (e) => {
+    const v = e.target.value;
+    if (v === '' || Number(v) >= 0) setForm((f) => ({ ...f, [field]: v }));
+  };
 
   const handleSave = async () => {
     setSaving(true); setError(''); setSuccess('');
@@ -166,7 +174,7 @@ function Profile() {
         <div className="form-row">
           <div className="form-field">
             <label>Birth</label>
-            <input type="date" value={form.birthDate} readOnly={!isEditing} className={isEditing ? 'editable' : ''} onChange={set('birthDate')} />
+            <input type="date" value={form.birthDate} readOnly={!isEditing} max={today} className={isEditing ? 'editable' : ''} onChange={set('birthDate')} />
           </div>
           <div className="form-field">
             <label>Gender</label>
@@ -183,14 +191,14 @@ function Profile() {
           <div className="form-field">
             <label>Weight</label>
             <div className="input-with-text">
-              <input type="number" value={form.weight} readOnly={!isEditing} className={isEditing ? 'editable' : ''} onChange={set('weight')} />
+              <input type="number" value={form.weight} readOnly={!isEditing} min="0" className={isEditing ? 'editable' : ''} onChange={setPositive('weight')} />
               <span className="input-suffix">kg.</span>
             </div>
           </div>
           <div className="form-field">
             <label>Height</label>
             <div className="input-with-text">
-              <input type="number" value={form.height} readOnly={!isEditing} className={isEditing ? 'editable' : ''} onChange={set('height')} />
+              <input type="number" value={form.height} readOnly={!isEditing} min="0" className={isEditing ? 'editable' : ''} onChange={setPositive('height')} />
               <span className="input-suffix">cm.</span>
             </div>
           </div>
