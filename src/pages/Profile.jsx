@@ -24,6 +24,10 @@ function Profile() {
   const [pwSuccess, setPwSuccess] = useState('');
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) { navigate('/login'); return; }
 
@@ -237,7 +241,7 @@ function Profile() {
         {/* Logout */}
         <button
           onClick={() => { logout(); navigate('/login'); }}
-          style={{ marginTop: '1.5rem', width: '100%', padding: '12px', background: 'transparent', border: '1px solid #e53e3e', borderRadius: '8px', color: '#e53e3e', fontWeight: 600, cursor: 'pointer' }}
+          style={{ marginTop: '1.5rem', marginBottom: '2rem', width: '100%', padding: '14px', background: 'transparent', border: '1px solid #e53e3e', borderRadius: '8px', color: '#e53e3e', fontWeight: 600, cursor: 'pointer' }}
         >
           Log out
         </button>
