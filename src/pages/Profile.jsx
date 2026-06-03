@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Edit2, Check, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -22,12 +22,6 @@ function Profile() {
   const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '' });
   const [pwError, setPwError] = useState('');
   const [pwSuccess, setPwSuccess] = useState('');
-
-  useLayoutEffect(() => {
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -118,31 +112,12 @@ function Profile() {
   return (
     <div className="profile-page">
       {/* Back Button */}
-      <div style={{ position: 'sticky', top: '1.5rem', zIndex: 100, height: 0 }}>
-        <button className="profile-back-btn" onClick={() => navigate(-1)}>
-          <ChevronLeft size={24} />
-        </button>
-      </div>
+      <button className="profile-back-btn" onClick={() => navigate(-1)} style={{ position: 'absolute', top: '1.5rem', left: '1.5rem' }}>
+        <ChevronLeft size={24} />
+      </button>
 
-      {/* Header */}
-      <div className="profile-header">
-        <div className="profile-pattern" style={{ backgroundImage: "url('/topo-pattern.png')" }}></div>
-      </div>
-
-      {/* Avatar & Title */}
-      <div className="profile-info">
-        <div className="profile-avatar-container">
-          <div style={{
-            width: '100%', height: '100%', borderRadius: '50%',
-            background: 'var(--accent-red)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '2.8rem', fontWeight: 700, color: '#fff',
-            letterSpacing: '-1px',
-          }}>
-            {form.firstName.charAt(0).toUpperCase()}
-          </div>
-        </div>
-
+      {/* Title */}
+      <div className="profile-info" style={{ marginTop: '4rem' }}>
         <div className="profile-title-container">
           <h2 className="profile-title">Profile</h2>
           {!isEditing ? (
