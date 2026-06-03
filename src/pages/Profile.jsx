@@ -59,6 +59,12 @@ function Profile() {
     if (v === '' || Number(v) >= 0) setForm((f) => ({ ...f, [field]: v }));
   };
 
+  // วันเกิดต้องไม่เกินวันนี้ — ถ้าเลือกอนาคตให้ดึงกลับเป็นวันนี้
+  const setBirthDate = (e) => {
+    const v = e.target.value;
+    setForm((f) => ({ ...f, birthDate: v && v > today ? today : v }));
+  };
+
   const handleSave = async () => {
     setSaving(true); setError(''); setSuccess('');
     try {
@@ -174,7 +180,7 @@ function Profile() {
         <div className="form-row">
           <div className="form-field">
             <label>Birth</label>
-            <input type="date" value={form.birthDate} readOnly={!isEditing} max={today} className={isEditing ? 'editable' : ''} onChange={set('birthDate')} />
+            <input type="date" value={form.birthDate} readOnly={!isEditing} max={today} className={isEditing ? 'editable' : ''} onChange={setBirthDate} />
           </div>
           <div className="form-field">
             <label>Gender</label>

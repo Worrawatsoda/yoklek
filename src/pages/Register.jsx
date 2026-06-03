@@ -22,7 +22,21 @@ function Register() {
     { value: 'other', label: 'Other' },
   ];
 
+  const today = new Date().toISOString().slice(0, 10);
+
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+
+  // ไม่ให้ติดลบ
+  const setPositive = (field) => (e) => {
+    const v = e.target.value;
+    if (v === '' || Number(v) >= 0) setForm((f) => ({ ...f, [field]: v }));
+  };
+
+  // วันเกิดต้องไม่เกินวันนี้
+  const setBirthDate = (e) => {
+    const v = e.target.value;
+    setForm((f) => ({ ...f, birthDate: v && v > today ? today : v }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -78,7 +92,7 @@ function Register() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', width: '100%', overflow: 'hidden', maxWidth: '100%' }}>
           <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', paddingLeft: '0.25rem' }}>Date of Birth</label>
-          <Input type="date" value={form.birthDate} onChange={set('birthDate')} max={new Date().toISOString().slice(0, 10)} style={{ width: '100%', maxWidth: '100%', display: 'block' }} />
+          <Input type="date" value={form.birthDate} onChange={setBirthDate} max={today} style={{ width: '100%', maxWidth: '100%', display: 'block' }} />
         </div>
 
         <Select
@@ -89,8 +103,8 @@ function Register() {
         />
 
         <div className="row-group">
-          <Input type="number" placeholder="Weight (kg)" value={form.weight} onChange={set('weight')} min="0" />
-          <Input type="number" placeholder="Height (cm)" value={form.height} onChange={set('height')} min="0" />
+          <Input type="number" placeholder="Weight (kg)" value={form.weight} onChange={setPositive('weight')} min="0" />
+          <Input type="number" placeholder="Height (cm)" value={form.height} onChange={setPositive('height')} min="0" />
         </div>
 
         {error && (
