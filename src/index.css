@@ -106,8 +106,19 @@ select {
 }
 
 input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
   max-width: 100%;
   min-width: 0;
+  box-sizing: border-box;
+}
+
+/* iOS Safari: stop the inner value box from forcing intrinsic width */
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+  min-width: 0;
+  margin: 0;
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
