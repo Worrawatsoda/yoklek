@@ -705,6 +705,11 @@ select:focus {
   gap: 1rem;
 }
 
+.form-row > .form-field {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 /* Storage Page Styles */
 .search-container {
   position: relative;
