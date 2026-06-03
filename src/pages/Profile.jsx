@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Edit2, Check, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -23,8 +23,10 @@ function Profile() {
   const [pwError, setPwError] = useState('');
   const [pwSuccess, setPwSuccess] = useState('');
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
   }, []);
 
   useEffect(() => {
