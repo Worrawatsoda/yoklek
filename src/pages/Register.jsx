@@ -76,7 +76,23 @@ function Register() {
           <Input type="text" placeholder="Last Name" value={form.lastName} onChange={set('lastName')} />
         </div>
 
-        <Input type="date" placeholder="Birth" value={form.birthDate} onChange={set('birthDate')} max={new Date().toISOString().slice(0, 10)} />
+        <div style={{ position: 'relative', width: '100%' }}>
+          <Input type="date" placeholder="Date of Birth" value={form.birthDate} onChange={set('birthDate')} max={new Date().toISOString().slice(0, 10)} style={{ width: '100%', color: form.birthDate ? undefined : 'transparent' }} />
+          {!form.birthDate && (
+            <span style={{
+              position: 'absolute',
+              left: '1rem',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: 'var(--text-muted)',
+              fontSize: '0.95rem',
+              pointerEvents: 'none',
+              userSelect: 'none',
+            }}>
+              Date of Birth
+            </span>
+          )}
+        </div>
 
         <Select
           defaultLabel="Gender"
