@@ -73,6 +73,13 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
+    // บัญชี test/admin ที่อยู่ใน allowlist → ข้าม 2FA (อีเมล mock ไม่มี inbox จริง)
+    const bypassList = (process.env.OTP_BYPASS_EMAILS || '')
+      .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    if (bypassList.includes(user.email.toLowerCase())) {
+      return res.json({ token: signToken(user), user: publicUser(user) });
+    }
+
     // อุปกรณ์ถูกจำไว้และยังไม่หมดอายุ → ข้าม 2FA เข้าเลย
     if (deviceToken) {
       const h = sha256(deviceToken);
