@@ -41,16 +41,25 @@ export default function Expert() {
 
   const act = async (id, action, note = '') => {
     setActing(id + action);
-    await fetch(`${API}/admin/expert-applications/${id}/${action}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
-      body: JSON.stringify(note ? { reviewNote: note } : {}),
-    });
-    setActing('');
-    setRejectingId(null);
-    setRejectNote('');
-    setSelected(null);
-    load();
+    try {
+      const res = await fetch(`${API}/admin/expert-applications/${id}/${action}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+        body: JSON.stringify(note ? { reviewNote: note } : {}),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'ทำรายการไม่สำเร็จ');
+      }
+      setRejectingId(null);
+      setRejectNote('');
+      setSelected(null);
+      load();
+    } catch (err) {
+      alert(err.message || 'เกิดข้อผิดพลาด ลองใหม่อีกครั้ง');
+    } finally {
+      setActing('');
+    }
   };
 
   return (

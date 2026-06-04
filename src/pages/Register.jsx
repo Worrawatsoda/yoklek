@@ -41,6 +41,11 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    // ตรวจรหัสผ่านขั้นต่ำ ให้ตรงกับหน้า Reset Password
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
     setLoading(true);
     try {
       await register({

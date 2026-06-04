@@ -3,10 +3,30 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
 const authMiddleware = require('../middleware/auth');
-const { sendResetEmail } = require('../utils/mailer');
+const { sendResetEmail, sendOtpEmail } = require('../utils/mailer');
 const { notify } = require('../utils/notify');
 
 const router = express.Router();
+
+// ── helpers ───────────────────────────────────────────────
+const sha256 = (s) => crypto.createHash('sha256').update(String(s)).digest('hex');
+
+const publicUser = (u) => ({
+  id: u._id, email: u.email, firstName: u.firstName, lastName: u.lastName, role: u.role,
+});
+
+const signToken = (u) =>
+  jwt.sign({ userId: u._id, email: u.email }, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+// สร้าง OTP ใหม่ + ส่งอีเมล (ใช้ร่วมกันใน /login และ /resend-otp)
+async function issueOtp(user) {
+  const code = String(Math.floor(100000 + Math.random() * 900000)); // 6 หลัก
+  user.otpHash = sha256(code);
+  user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 นาที
+  user.otpAttempts = 0;
+  await user.save();
+  await sendOtpEmail(user.email, code);
+}
 
 // Register
 router.post('/register', async (req, res) => {
@@ -33,42 +53,109 @@ router.post('/register', async (req, res) => {
       'บัญชีของคุณพร้อมใช้งานแล้ว เริ่ม record การออกกำลังกายและ verify ท่าของคุณได้เลย 💪'
     );
 
-    const token = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '7d' });
-
-    res.status(201).json({
-      token,
-      user: { id: user._id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role },
-    });
+    res.status(201).json({ token: signToken(user), user: publicUser(user) });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
-// Login
+// Login — step 1: ตรวจรหัสผ่าน แล้วออก OTP (เว้นแต่อุปกรณ์ถูกจำไว้)
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, deviceToken } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
     const user = await User.findOne({ email });
-    if (!user) {
+    if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+    // อุปกรณ์ถูกจำไว้และยังไม่หมดอายุ → ข้าม 2FA เข้าเลย
+    if (deviceToken) {
+      const h = sha256(deviceToken);
+      const dev = (user.trustedDevices || []).find(d => d.tokenHash === h && d.expiresAt > new Date());
+      if (dev) {
+        return res.json({ token: signToken(user), user: publicUser(user) });
+      }
     }
 
-    const token = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    // ออก OTP ส่งเข้าอีเมล
+    try {
+      await issueOtp(user);
+    } catch (mailErr) {
+      console.error('OTP mail error:', mailErr.message);
+      return res.status(500).json({ message: 'ส่งรหัสยืนยันไม่สำเร็จ ลองใหม่อีกครั้ง' });
+    }
 
-    res.json({
-      token,
-      user: { id: user._id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role },
-    });
+    res.json({ requires2fa: true, email: user.email });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Login — step 2: ตรวจ OTP แล้วคืน JWT (+ deviceToken ถ้าเลือกจำอุปกรณ์)
+router.post('/verify-2fa', async (req, res) => {
+  try {
+    const { email, code, rememberDevice } = req.body;
+    if (!email || !code) return res.status(400).json({ message: 'Email and code are required' });
+
+    const user = await User.findOne({ email });
+    if (!user || !user.otpHash || !user.otpExpiry) {
+      return res.status(400).json({ message: 'ไม่มีคำขอ OTP กรุณาเข้าสู่ระบบใหม่' });
+    }
+    if (user.otpExpiry < new Date()) {
+      return res.status(400).json({ message: 'รหัสหมดอายุ กรุณาเข้าสู่ระบบใหม่' });
+    }
+    if (user.otpAttempts >= 5) {
+      return res.status(429).json({ message: 'กรอกผิดเกินกำหนด กรุณาเข้าสู่ระบบใหม่' });
+    }
+
+    if (sha256(code) !== user.otpHash) {
+      user.otpAttempts += 1;
+      await user.save();
+      return res.status(401).json({ message: 'รหัสไม่ถูกต้อง' });
+    }
+
+    // สำเร็จ — ล้าง OTP
+    user.otpHash = undefined;
+    user.otpExpiry = undefined;
+    user.otpAttempts = 0;
+
+    let newDeviceToken;
+    if (rememberDevice) {
+      newDeviceToken = crypto.randomBytes(32).toString('hex');
+      // เก็บกวาดอุปกรณ์ที่หมดอายุ แล้วเพิ่มอันใหม่ (30 วัน)
+      user.trustedDevices = (user.trustedDevices || []).filter(d => d.expiresAt > new Date());
+      user.trustedDevices.push({
+        tokenHash: sha256(newDeviceToken),
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      });
+    }
+    await user.save();
+
+    res.json({ token: signToken(user), user: publicUser(user), deviceToken: newDeviceToken });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// ส่ง OTP ใหม่
+router.post('/resend-otp', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    // ตอบ OK เสมอ กันเดาว่าอีเมลมีอยู่จริงไหม
+    if (!user) return res.json({ message: 'OTP resent if the account exists' });
+    try {
+      await issueOtp(user);
+    } catch (mailErr) {
+      console.error('OTP resend error:', mailErr.message);
+      return res.status(500).json({ message: 'ส่งรหัสไม่สำเร็จ ลองใหม่อีกครั้ง' });
+    }
+    res.json({ message: 'OTP resent' });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }

@@ -16,13 +16,13 @@ function AvatarMenu({ user, onLogout, onGoApp }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
+  const setClose = () => setOpen(false);
+
   useEffect(() => {
     const close = e => { if (ref.current && !ref.current.contains(e.target)) setClose(); };
     document.addEventListener('mousedown', close);
     return () => document.removeEventListener('mousedown', close);
   }, []);
-
-  const setClose = () => setOpen(false);
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>

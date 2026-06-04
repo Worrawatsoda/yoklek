@@ -200,4 +200,18 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
+// DELETE a workout log (owner only)
+router.delete('/:id', authMiddleware, async (req, res) => {
+  try {
+    const log = await WorkoutLog.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.user.userId,
+    });
+    if (!log) return res.status(404).json({ message: 'ไม่พบรายการ หรือไม่มีสิทธิ์ลบ' });
+    res.json({ message: 'ลบแล้ว', id: req.params.id });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
 module.exports = router;

@@ -18,11 +18,18 @@ function Record() {
   const [saving,        setSaving]        = useState(false);
   const [saved,         setSaved]         = useState(false);
   const [error,         setError]         = useState('');
+  const [optsLoading,   setOptsLoading]   = useState(true);
+  const [optsError,     setOptsError]     = useState('');
 
   // Fetch exercise list from DB (verified only)
   useEffect(() => {
+    setOptsLoading(true);
+    setOptsError('');
     fetch(`${API}/exercises?verified=true`)
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error('โหลดรายการท่าไม่สำเร็จ');
+        return r.json();
+      })
       .then(data => {
         if (Array.isArray(data)) {
           setExerciseOpts(data.map(ex => ({
@@ -32,7 +39,8 @@ function Record() {
           })));
         }
       })
-      .catch(() => {});
+      .catch(() => setOptsError('โหลดรายการท่าไม่สำเร็จ — ตรวจสอบการเชื่อมต่อ'))
+      .finally(() => setOptsLoading(false));
   }, []);
 
   /* ── handlers ─────────────────────────────────────────── */
@@ -51,6 +59,8 @@ function Record() {
   };
 
   const handleSetChange = (exId, setId, field, value) => {
+    // กันค่าติดลบ (reps/weight) — พิมพ์ '-' มือไม่ผ่าน
+    if (value !== '' && Number(value) < 0) return;
     setExercises(prev => prev.map(ex => {
       if (ex.id !== exId) return ex;
       return { ...ex, sets: ex.sets.map(s => s.id === setId ? { ...s, [field]: value } : s) };
@@ -186,6 +196,17 @@ function Record() {
                 padding: '0.8rem',
               }}
             />
+
+            {/* สถานะการโหลดรายการท่า — ช่วยให้รู้ว่าทำไม dropdown ว่าง */}
+            {!exercise.exerciseId && (
+              optsError ? (
+                <p style={{ color: '#e53e3e', fontSize: '0.78rem', marginTop: 8 }}>{optsError}</p>
+              ) : optsLoading ? (
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: 8 }}>กำลังโหลดรายการท่า...</p>
+              ) : exerciseOpts.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: 8 }}>ยังไม่มีท่าออกกำลังกายในระบบ</p>
+              ) : null
+            )}
 
             {exercise.exerciseId && (
               <>

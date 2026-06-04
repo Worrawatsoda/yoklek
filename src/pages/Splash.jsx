@@ -7,7 +7,9 @@ function Splash() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      navigate('/landing');
+      // ถ้าล็อกอินค้างไว้ (มี token) ข้ามไปหน้า home เลย
+      const token = localStorage.getItem('token');
+      navigate(token ? '/home' : '/landing');
     }, 2000);
     return () => clearTimeout(timer);
   }, [navigate]);

@@ -92,14 +92,21 @@ function UserDetail({ userId, onClose }) {
 
   const save = async () => {
     setSaving(true);
-    const res = await fetch(`${API}/admin/users/${userId}/profile`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tk()}` },
-      body: JSON.stringify(form),
-    });
-    const updated = await res.json();
-    setData(d => ({ ...d, user: updated }));
-    setSaving(false); setEditing(false);
+    try {
+      const res = await fetch(`${API}/admin/users/${userId}/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tk()}` },
+        body: JSON.stringify(form),
+      });
+      const updated = await res.json();
+      if (!res.ok) throw new Error(updated.message || 'บันทึกไม่สำเร็จ');
+      setData(d => ({ ...d, user: updated }));
+      setEditing(false);
+    } catch (err) {
+      alert(err.message || 'เกิดข้อผิดพลาด ลองใหม่อีกครั้ง');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!data) return (

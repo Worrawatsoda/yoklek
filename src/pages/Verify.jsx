@@ -183,13 +183,22 @@ function ReviewTab({ userRole }) {
 
   const act = async (id, action) => {
     setActing(id + action);
-    await fetch(`${API}/verify/${id}/${action}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
-      body: JSON.stringify({ feedback: feedback[id] || '' }),
-    });
-    setActing('');
-    loadPending();
+    try {
+      const res = await fetch(`${API}/verify/${id}/${action}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+        body: JSON.stringify({ feedback: feedback[id] || '' }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'ทำรายการไม่สำเร็จ');
+      }
+      loadPending();
+    } catch (err) {
+      alert(err.message || 'เกิดข้อผิดพลาด ลองใหม่อีกครั้ง');
+    } finally {
+      setActing('');
+    }
   };
 
   if (userRole !== 'expert' && userRole !== 'admin') {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   Activity, Flame, Weight, Target,
-  CheckCircle2, Award, ChevronDown, ChevronUp, Pencil, Check, X,
+  CheckCircle2, Award, ChevronDown, ChevronUp, Pencil, Check, X, Trash2,
 } from 'lucide-react';
 import { API } from '../lib/api';
 const tk  = () => localStorage.getItem('token');
@@ -82,7 +82,7 @@ function BestPerformance({ bestStats, onGoalSaved }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <input
                       type="number" min="0" value={goalInput}
-                      onChange={e => setGoalInput(e.target.value)}
+                      onChange={e => { if (e.target.value === '' || Number(e.target.value) >= 0) setGoalInput(e.target.value); }}
                       placeholder="goal kg"
                       autoFocus
                       style={{ width: 72, padding: '4px 8px', background: '#1e1e1e', border: '1px solid #333', borderRadius: 6, color: '#fff', fontSize: '0.8rem' }}
@@ -168,6 +168,7 @@ function Statistics() {
   const [history,        setHistory]        = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [expanded,       setExpanded]       = useState({});
+  const [deletingId,     setDeletingId]     = useState(null);
 
   /* ── fetch stats ──────────────────────────────────────── */
   const fetchStats = () => {
@@ -207,6 +208,27 @@ function Statistics() {
 
   /* ── toggle history card ──────────────────────────────── */
   const toggle = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
+
+  /* ── delete a workout log ─────────────────────────────── */
+  const deleteLog = async (id) => {
+    if (!window.confirm('ลบประวัติการออกกำลังกายวันนี้? การลบนี้ย้อนกลับไม่ได้')) return;
+    setDeletingId(id);
+    const prev = history;
+    setHistory(h => h.filter(l => l._id !== id)); // optimistic
+    try {
+      const res = await fetch(`${API}/workoutlogs/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${tk()}` },
+      });
+      if (!res.ok) throw new Error();
+      fetchStats(); // อัปเดต streak/PR/total ให้ตรง
+    } catch {
+      setHistory(prev); // rollback ถ้า fail
+      alert('ลบไม่สำเร็จ ลองใหม่อีกครั้ง');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   /* ── derived ──────────────────────────────────────────── */
   const visibleBadges = stats?.badges
@@ -327,7 +349,7 @@ function Statistics() {
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                       <input
                         type="number" min="1" value={goalInput}
-                        onChange={e => setGoalInput(e.target.value)}
+                        onChange={e => { if (e.target.value === '' || Number(e.target.value) >= 0) setGoalInput(e.target.value); }}
                         placeholder="เป้าหมาย (วัน)"
                         style={{ width: 90, padding: '4px 8px', background: '#1e1e1e', border: '1px solid #333', borderRadius: 6, color: '#fff', fontSize: '0.82rem' }}
                         autoFocus
@@ -450,6 +472,22 @@ function Statistics() {
                         </div>
                       );
                     })}
+
+                    {/* Delete this log */}
+                    <button
+                      onClick={() => deleteLog(log._id)}
+                      disabled={deletingId === log._id}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        width: '100%', marginTop: 12, padding: '10px',
+                        background: 'transparent', border: '1px solid #5a1e1e',
+                        borderRadius: 8, color: '#e53e3e', cursor: 'pointer',
+                        fontSize: '0.8rem', fontWeight: 600,
+                      }}
+                    >
+                      <Trash2 size={14} />
+                      {deletingId === log._id ? 'กำลังลบ...' : 'ลบประวัตินี้'}
+                    </button>
                   </div>
                 )}
               </div>

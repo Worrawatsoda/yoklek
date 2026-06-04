@@ -13,6 +13,15 @@ const userSchema = new mongoose.Schema({
   height: { type: Number },
   resetToken: { type: String },
   resetTokenExpiry: { type: Date },
+  // Login 2FA (email OTP)
+  otpHash: { type: String },
+  otpExpiry: { type: Date },
+  otpAttempts: { type: Number, default: 0 },
+  // Devices ที่จำไว้ ข้าม 2FA 30 วัน
+  trustedDevices: [{
+    tokenHash: { type: String },
+    expiresAt: { type: Date },
+  }],
   role: { type: String, enum: ['user', 'expert', 'admin'], default: 'user' },
   goalDays: { type: Number, default: 0 },
   badges: [{ exerciseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Exercise' }, earnedAt: { type: Date, default: Date.now } }],

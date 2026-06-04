@@ -337,9 +337,15 @@ export default function Content() {
   const goPage = p => { if (p<1||p>pages) return; setPage(p); fetchExercises(p,search,muscle,status,sort); };
 
   const handleDelete = async (id) => {
-    await fetch(`${API}/admin/exercises/${id}`, { method:'DELETE', headers:{ Authorization:`Bearer ${tk()}` } });
-    setDelId(null);
-    fetchExercises(page, search, muscle, status, sort);
+    try {
+      const res = await fetch(`${API}/admin/exercises/${id}`, { method:'DELETE', headers:{ Authorization:`Bearer ${tk()}` } });
+      if (!res.ok) throw new Error('ลบไม่สำเร็จ');
+    } catch (err) {
+      alert(err.message || 'เกิดข้อผิดพลาด');
+    } finally {
+      setDelId(null);
+      fetchExercises(page, search, muscle, status, sort);
+    }
   };
 
   const pageNums = () => {
