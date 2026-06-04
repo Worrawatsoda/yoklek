@@ -1,16 +1,36 @@
-const nodemailer = require('nodemailer');
+// ส่งอีเมลผ่าน Brevo HTTP API (port 443 — Render ไม่บล็อก, ส่งให้ใครก็ได้)
+// ต้องมี env: BREVO_API_KEY, EMAIL_FROM (อีเมลที่ verify เป็น sender ใน Brevo)
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+const BREVO_URL = 'https://api.brevo.com/v3/smtp/email';
+const FROM_EMAIL = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+const FROM_NAME = 'YOKLEK';
+
+async function sendMail({ to, subject, html }) {
+  if (!process.env.BREVO_API_KEY) throw new Error('BREVO_API_KEY is not set');
+
+  const res = await fetch(BREVO_URL, {
+    method: 'POST',
+    headers: {
+      'api-key': process.env.BREVO_API_KEY,
+      'Content-Type': 'application/json',
+      accept: 'application/json',
+    },
+    body: JSON.stringify({
+      sender: { name: FROM_NAME, email: FROM_EMAIL },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+    }),
+  });
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`Brevo send failed (${res.status}): ${detail}`);
+  }
+}
 
 async function sendResetEmail(toEmail, resetLink) {
-  await transporter.sendMail({
-    from: `"Yoklek App" <${process.env.EMAIL_USER}>`,
+  await sendMail({
     to: toEmail,
     subject: 'Reset your password',
     html: `
@@ -25,8 +45,7 @@ async function sendResetEmail(toEmail, resetLink) {
 }
 
 async function sendOtpEmail(toEmail, code) {
-  await transporter.sendMail({
-    from: `"Yoklek App" <${process.env.EMAIL_USER}>`,
+  await sendMail({
     to: toEmail,
     subject: `รหัสยืนยันเข้าสู่ระบบ: ${code}`,
     html: `
